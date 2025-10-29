@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Web Analyzer</title>
+    <meta charset="UTF-8" />
+    <style>
+        body {
+            font-family: Arial;
+            margin: 50px;
+        }
+
+        .container {
+            width: 400px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h3>Web Analyzer</h3>
+        <input id="urlInput" placeholder="Enter URL (e.g. example.com)" />
+        <button id="submitButton">Analyze</button>
+        <div id="results"></div>
+
+        <script>
+            document.getElementById("submitButton").addEventListener("click", async () => {
+                const url = document.getElementById("urlInput").value;
+                const responseDiv = document.getElementById("results");
+                responseDiv.innerHTML = "Analyzing....";
+
+                try {
+                    const res = await fetch("/analyze", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url }),
+                    });
+
+                    const data = await res.json();
+                    if (data.error) {
+                        responseDiv.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+                    } else {
+                        responseDiv.innerHTML = `<p><strong>HTML Version:</strong> ${data.htmlVersion}</p>`;
+                    }
+                } catch (err) {
+                    responseDiv.innerHTML = `<p style="color:red;">Request failed: ${err}</p>`;
+                }
+            });
+        </script>
+</body>
+
+</html>
