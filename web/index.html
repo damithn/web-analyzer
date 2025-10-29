@@ -41,7 +41,7 @@
             document.getElementById("submitButton").addEventListener("click", async () => {
                 const url = document.getElementById("urlInput").value;
                 const responseDiv = document.getElementById("results");
-                responseDiv.innerHTML = "Analyzing....";
+                responseDiv.innerHTML = "Analyzing : " + url + " ";
 
                 try {
                     const res = await fetch("/analyze", {
@@ -51,13 +51,18 @@
                     });
 
                     const data = await res.json();
-                    if (data.error) {
-                        responseDiv.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
-                    } else {
-                        responseDiv.innerHTML = `<p><strong>HTML Version:</strong> ${data.htmlVersion}</p>`;
+
+                    if (!res.ok || data.error) {
+                        responseDiv.style.color = "red";
+                        responseDiv.textContent = `Error: ${data.error || "Unknown error occurred"}`;
+                        return;
                     }
+
+                    responseDiv.style.color = "black";
+                    responseDiv.textContent = JSON.stringify(data, null, 2);
                 } catch (err) {
-                    responseDiv.innerHTML = `<p style="color:red;">Request failed: ${err}</p>`;
+                    responseDiv.style.color = "red";
+                    responseDiv.textContent = `Exception: ${err.message}`;
                 }
             });
         </script>
