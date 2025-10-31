@@ -17,8 +17,10 @@ type AnalyzeRequest struct {
 
 // JSON response payload
 type AnalyzeResponse struct {
-	HTMLVersion string `json:"htmlVersion"`
-	Error       string `json:"error,omitempty"`
+	HTMLVersion string         `json:"htmlVersion"`
+	PageTitle   string         `json:"pageTitle"`
+	Headings    map[string]int `json:"headings"`
+	Error       string         `json:"error,omitempty"`
 }
 
 // JSON response with given status code
@@ -67,11 +69,15 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	version, err := service.AnalyzeHTMLVersion(normalizedURL)
+	result, err := service.AnalyzeWebPage(normalizedURL)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, AnalyzeResponse{Error: err.Error()})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, AnalyzeResponse{HTMLVersion: version})
+	writeJSON(w, http.StatusOK, AnalyzeResponse{
+		HTMLVersion: result.HTMLVersion,
+		PageTitle:   result.PageTitle,
+		Headings:    result.Headings,
+	})
 }

@@ -36,36 +36,54 @@
         <input id="urlInput" placeholder="Enter URL (e.g. example.com)" />
         <button id="submitButton">Analyze</button>
         <div id="results"></div>
+    </div>
 
-        <script>
-            document.getElementById("submitButton").addEventListener("click", async () => {
-                const url = document.getElementById("urlInput").value;
-                const responseDiv = document.getElementById("results");
-                responseDiv.innerHTML = "Analyzing : " + url + " ";
+    <script>
+        document.getElementById("submitButton").addEventListener("click", async () => {
+            const url = document.getElementById("urlInput").value.trim();
+            const responseDiv = document.getElementById("results");
+            responseDiv.innerHTML = "Analyzing: " + url + "...";
 
-                try {
-                    const res = await fetch("/analyze", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ url }),
-                    });
+            if (!url) {
+                responseDiv.style.color = "red";
+                responseDiv.textContent = "Please enter a valid URL.";
+                return;
+            }
 
-                    const data = await res.json();
+            try {
+                const res = await fetch("/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url }),
+                });
 
-                    if (!res.ok || data.error) {
-                        responseDiv.style.color = "red";
-                        responseDiv.textContent = `Error: ${data.error || "Unknown error occurred"}`;
-                        return;
-                    }
+                const data = await res.json();
 
-                    responseDiv.style.color = "black";
-                    responseDiv.textContent = JSON.stringify(data, null, 2);
-                } catch (err) {
+                if (!res.ok || data.error) {
                     responseDiv.style.color = "red";
-                    responseDiv.textContent = `Exception: ${err.message}`;
+                    responseDiv.textContent = `Error: ${data.error || "Unknown error occurred"}`;
+                    return;
                 }
-            });
-        </script>
+
+                const headings = data.headings || {};
+
+                responseDiv.style.color = "black";
+                responseDiv.innerHTML = `
+                    <p><strong>HTML Version:</strong> ${data.htmlVersion || "N/A"}</p>
+                    <p><strong>Page Title:</strong> ${data.pageTitle || "N/A"}</p>
+                    <p><strong>Headings:</strong></p>
+                    <ul>
+                        ${Object.entries(headings)
+                            .map(([level, count]) => `<li>${level.toUpperCase()}: ${count}</li>`)
+                            .join("") || "<li>No headings found</li>"}
+                    </ul>
+                `;
+            } catch (err) {
+                responseDiv.style.color = "red";
+                responseDiv.textContent = `Exception: ${err.message}`;
+            }
+        });
+    </script>
 </body>
 
 </html>
