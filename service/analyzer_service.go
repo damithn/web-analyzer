@@ -71,16 +71,16 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 	result := &AnalyzeResult{}
 
 	// Detect HTML Version
-	result.HTMLVersion = detectHTMLVersion(targetURL, content)
+	result.HTMLVersion = DetectHTMLVersion(targetURL, content)
 
 	// Extract Paget Titlt
-	result.PageTitle = extractPageTitle(targetURL, content)
+	result.PageTitle = ExtractPageTitle(targetURL, content)
 
 	// Count Headings
-	result.Headings = countHeadings(targetURL, content)
+	result.Headings = CountHeadings(targetURL, content)
 
 	// Analysis Links
-	result.Links = analyzeLinks(targetURL, content)
+	result.Links = AnalyzeLinks(targetURL, content)
 
 	// Check Login Form
 	result.ContainLoginform = CheckForLoginForm(doc)
@@ -89,7 +89,7 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 
 }
 
-func detectHTMLVersion(targetURL, content string) string {
+func DetectHTMLVersion(targetURL, content string) string {
 	log.Printf("Starting detect html version for base URL : %s\n", targetURL)
 	lowerContent := strings.ToLower(content)
 	switch {
@@ -110,7 +110,7 @@ func detectHTMLVersion(targetURL, content string) string {
 	}
 }
 
-func extractPageTitle(targetURL, content string) string {
+func ExtractPageTitle(targetURL, content string) string {
 	log.Printf("Starting extract page title for base URL: %s\n", targetURL)
 	tokenizer := html.NewTokenizer(strings.NewReader(content))
 	for {
@@ -131,7 +131,7 @@ func extractPageTitle(targetURL, content string) string {
 	}
 }
 
-func countHeadings(targetURL, content string) map[string]int {
+func CountHeadings(targetURL, content string) map[string]int {
 	log.Printf("Starting count headers for base URL: %s\n", targetURL)
 	result := map[string]int{
 		"h1": 0,
@@ -160,7 +160,7 @@ func countHeadings(targetURL, content string) map[string]int {
 	return result
 }
 
-func analyzeLinks(baseURL, content string) LinkAnalysis {
+func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 	log.Printf("Starting link analysis for base URL: %s\n", baseURL)
 
 	//TODO validate baseURL
