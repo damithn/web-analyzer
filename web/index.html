@@ -74,9 +74,22 @@
                     <p><strong>Headings:</strong></p>
                     <ul>
                         ${Object.entries(headings)
-                            .map(([level, count]) => `<li>${level.toUpperCase()}: ${count}</li>`)
-                            .join("") || "<li>No headings found</li>"}
+                        .map(([level, count]) => `<li>${level.toUpperCase()}: ${count}</li>`)
+                        .join("") || "<li>No headings found</li>"}
                     </ul>
+                    <p><strong>Links:</strong></p>
+                    <ul>
+                        <li>Total: ${data.links.total}</li>
+                        <li>Internal: ${data.links.internal}</li>
+                        <li>External: ${data.links.external}</li>
+                        <li>Inaccessible: ${data.links.inaccessible}</li>
+                    </ul>
+                        ${data.links.inaccessibleUrls?.length
+                        ? `<p><strong>Broken Links:</strong></p><ul>${data.links.inaccessibleUrls
+                            .map(url => `<li>${url}</li>`)
+                            .join("")}</ul>`
+                        : ""
+                    }
                 `;
             } catch (err) {
                 responseDiv.style.color = "red";
