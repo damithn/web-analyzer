@@ -17,11 +17,12 @@ type AnalyzeRequest struct {
 
 // JSON response payload
 type AnalyzeResponse struct {
-	HTMLVersion string               `json:"htmlVersion"`
-	PageTitle   string               `json:"pageTitle"`
-	Headings    map[string]int       `json:"headings"`
-	Links       service.LinkAnalysis `json:"links"`
-	Error       string               `json:"error,omitempty"`
+	HTMLVersion      string               `json:"htmlVersion"`
+	PageTitle        string               `json:"pageTitle"`
+	Headings         map[string]int       `json:"headings"`
+	Links            service.LinkAnalysis `json:"links"`
+	ContainLoginform bool                 `json:"containLoginForm"`
+	Error            string               `json:"error,omitempty"`
 }
 
 // JSON response with given status code
@@ -77,9 +78,10 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, AnalyzeResponse{
-		HTMLVersion: result.HTMLVersion,
-		PageTitle:   result.PageTitle,
-		Headings:    result.Headings,
-		Links:       result.Links,
+		HTMLVersion:      result.HTMLVersion,
+		PageTitle:        result.PageTitle,
+		Headings:         result.Headings,
+		Links:            result.Links,
+		ContainLoginform: result.ContainLoginform,
 	})
 }

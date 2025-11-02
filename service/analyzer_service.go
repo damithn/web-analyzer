@@ -15,10 +15,11 @@ import (
 
 // Analyze result - hold all the extected information
 type AnalyzeResult struct {
-	HTMLVersion string         `json:"htmlVersion"`
-	PageTitle   string         `json:"pageTitle"`
-	Headings    map[string]int `json:"headings"`
-	Links       LinkAnalysis   `json:"links"`
+	HTMLVersion      string         `json:"htmlVersion"`
+	PageTitle        string         `json:"pageTitle"`
+	Headings         map[string]int `json:"headings"`
+	Links            LinkAnalysis   `json:"links"`
+	ContainLoginform bool           `json:"containLoginForm"`
 }
 
 type LinkAnalysis struct {
@@ -61,6 +62,12 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 	content := string(bodyBytes)
 	log.Printf("Info: Content body read sussessfully for %s. Total size :%v", targetURL, len(content))
 
+	doc, err := html.Parse(strings.NewReader(content))
+	if err != nil {
+		log.Printf("Erro: faile to parse HTML content for %s: %v\n", targetURL, err)
+		return nil, fmt.Errorf("failed to parse HTML: %s", err)
+	}
+
 	result := &AnalyzeResult{}
 
 	// Detect HTML Version
@@ -72,8 +79,11 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 	// Count Headings
 	result.Headings = countHeadings(targetURL, content)
 
-	// Analysis links
+	// Analysis Links
 	result.Links = analyzeLinks(targetURL, content)
+
+	// Check Login Form
+	result.ContainLoginform = CheckForLoginForm(doc)
 
 	return result, nil
 
@@ -111,10 +121,11 @@ func extractPageTitle(targetURL, content string) string {
 		case html.StartTagToken:
 			t := tokenizer.Token()
 			if t.Data == "title" {
-				tokenizer.Next()
-				title := strings.TrimSpace(tokenizer.Token().Data)
-				log.Printf("Info: Finished extract title from %s: %s\n", targetURL, title)
-				return strings.TrimSpace(tokenizer.Token().Data)
+				if tokenizer.Next() == html.TextToken {
+					title := strings.TrimSpace(tokenizer.Token().Data)
+					log.Printf("Info: Finished extract title from %s: %s\n", targetURL, title)
+					return title
+				}
 			}
 		}
 	}
@@ -246,4 +257,63 @@ func analyzeLinks(baseURL, content string) LinkAnalysis {
 
 	return result
 
+}
+
+func CheckForLoginForm(content *html.Node) bool {
+	var hasLogin bool
+
+	var traverse func(*html.Node)
+
+	traverse = func(currentNode *html.Node) {
+		if hasLogin {
+			return
+		}
+
+		if currentNode.Type == html.ElementNode && currentNode.Data == "form" {
+			if containPassword(currentNode) {
+				hasLogin = true
+				return
+			}
+		}
+		for childNode := currentNode.FirstChild; childNode != nil && !hasLogin; childNode = childNode.NextSibling {
+			//traverse(currentNode)
+			traverse(childNode)
+			if hasLogin {
+				break
+			}
+		}
+	}
+	traverse(content)
+	return hasLogin
+}
+
+func containPassword(form *html.Node) bool {
+	var passwordFieldFound bool
+
+	var traverse func(*html.Node)
+
+	traverse = func(currentNode *html.Node) {
+		if passwordFieldFound {
+			return
+		}
+		if currentNode.Type == html.ElementNode && currentNode.Data == "input" {
+			// Itrate through all attribute of the input tag.
+			for _, inputAttribute := range currentNode.Attr {
+				// Check if the attribute is type= "password"
+				if inputAttribute.Key == "type" && inputAttribute.Val == "password" {
+					passwordFieldFound = true
+					return
+				}
+			}
+		}
+		for childNode := currentNode.FirstChild; childNode != nil && !passwordFieldFound; childNode = childNode.NextSibling {
+			//traverse(currentNode)
+			traverse(childNode)
+			if passwordFieldFound {
+				break
+			}
+		}
+	}
+	traverse(form)
+	return passwordFieldFound
 }
