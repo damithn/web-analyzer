@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/html"
@@ -32,7 +33,7 @@ type LinkAnalysis struct {
 
 // Performs analysis on the given URL
 func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
-	log.Printf("Starting web page analysis for initial URL: %s\n", targetURL)
+	log.Printf("Info: Starting web page analysis for initial URL: %s\n", targetURL)
 	if !strings.HasPrefix(targetURL, "http") {
 		log.Printf("Info: URL missing protocol. adding https:// to %s\n", targetURL)
 		targetURL = "https://" + targetURL
@@ -84,7 +85,7 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 }
 
 func DetectHTMLVersion(targetURL, content string) string {
-	log.Printf("Starting detect html version for base URL : %s\n", targetURL)
+	log.Printf("Info: Starting detect html version for base URL : %s\n", targetURL)
 	lowerContent := strings.ToLower(content)
 	switch {
 	case strings.Contains(lowerContent, "<!doctype html>"):
@@ -105,7 +106,7 @@ func DetectHTMLVersion(targetURL, content string) string {
 }
 
 func ExtractPageTitle(targetURL, content string) string {
-	log.Printf("Starting extract page title for base URL: %s\n", targetURL)
+	log.Printf("Info: Starting extract page title for base URL: %s\n", targetURL)
 	tokenizer := html.NewTokenizer(strings.NewReader(content))
 	for {
 		tokenType := tokenizer.Next()
@@ -126,7 +127,7 @@ func ExtractPageTitle(targetURL, content string) string {
 }
 
 func CountHeadings(targetURL, content string) map[string]int {
-	log.Printf("Starting count headers for base URL: %s\n", targetURL)
+	log.Printf("Info: Starting count headers for base URL: %s\n", targetURL)
 	result := map[string]int{
 		"h1": 0,
 		"h2": 0,
@@ -155,13 +156,10 @@ func CountHeadings(targetURL, content string) map[string]int {
 }
 
 func AnalyzeLinks(baseURL, content string) LinkAnalysis {
-	log.Printf("Starting link analysis for base URL: %s\n", baseURL)
-
-	//TODO validate baseURL
+	log.Printf("Info: Starting link analysis for base URL: %s\n", baseURL)
 
 	tokenizer := html.NewTokenizer(strings.NewReader(content))
-	// To store "href" values
-	links := []string{}
+	var links []string
 
 	for {
 		tokenType := tokenizer.Next()
@@ -171,6 +169,7 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 			}
 			break
 		}
+
 		if tokenType == html.StartTagToken {
 			token := tokenizer.Token()
 			if token.Data == "a" {
@@ -183,7 +182,7 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 		}
 	}
 
-	log.Printf("Finished HTML parsing. Found %d potential links.\n", len(links))
+	log.Printf("Info: Finished HTML parsing. Found %d potential links.\n", len(links))
 
 	result := LinkAnalysis{
 		Total: len(links),
@@ -191,78 +190,85 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 
 	base, err := url.Parse(baseURL)
 	if err != nil {
-		log.Fatalf("Error pasing provided baseURL %q: %v\n", baseURL, err)
+		log.Fatalf("Error: Parsing provided baseURL %q: %v\n", baseURL, err)
 	}
-
-	internalCount := 0
-	externalCount := 0
-	inaccessibleCount := 0
-	inaccessibleURLs := []string{}
 
 	client := &http.Client{Timeout: 3 * time.Second}
 
+	var mutx sync.Mutex
+	var wGrp sync.WaitGroup
+
+	concurrencyLimit := 10
+	sem := make(chan struct{}, concurrencyLimit)
+
 	for i, link := range links {
-		log.Printf("Processing link %d/%d:%s\n", i+1, len(links), link)
+		wGrp.Add(1)
+		go func(i int, link string) {
+			defer wGrp.Done()
+			sem <- struct{}{}        // acquire
+			defer func() { <-sem }() // release
 
-		u, err := url.Parse(link)
-		if err != nil {
-			inaccessibleCount++
-			inaccessibleURLs = append(inaccessibleURLs, link)
-			continue
-		}
+			log.Printf("Info: Processing link %d/%d: %s\n", i+1, len(links), link)
 
-		if !u.IsAbs() {
-			log.Printf("Info: Resoloving relative URL %q against base. \n", link)
-			u = base.ResolveReference(u)
-		}
+			ul, err := url.Parse(link)
+			if err != nil {
+				mutx.Lock()
+				result.Inaccessible++
+				result.InaccessibleURLs = append(result.InaccessibleURLs, link)
+				mutx.Unlock()
+				return
+			}
 
-		absoluteURL := u.String()
+			if !ul.IsAbs() {
+				ul = base.ResolveReference(ul)
+			}
 
-		if u.Host == base.Host {
-			internalCount++
-			log.Printf("Info: Identified INTERNAL link : %s\n", absoluteURL)
-		} else {
-			externalCount++
-			log.Printf("Info: Identified External link : %s\n", absoluteURL)
-		}
+			absoluteURL := ul.String()
 
-		resp, err := client.Head(absoluteURL)
-		if err != nil || resp.StatusCode >= 400 {
-			// Log HTTP status errors specifically
-			log.Printf("Error: Recevied inaccessible status code %d for URL:%s\n", resp.StatusCode, absoluteURL)
-			inaccessibleCount++
-			inaccessibleURLs = append(inaccessibleURLs, absoluteURL)
-		} else {
-			log.Printf("Info: Link %s is accessible (Status: %d).\n", absoluteURL, resp.StatusCode)
-		}
-		if resp != nil {
+			resp, err := client.Head(absoluteURL)
+			if err != nil || resp.StatusCode >= 400 {
+				if resp != nil {
+					resp.Body.Close()
+				}
+				log.Printf("Error: Inaccessible URL (%s), Status: %v\n", absoluteURL, err)
+				mutx.Lock()
+				result.Inaccessible++
+				result.InaccessibleURLs = append(result.InaccessibleURLs, absoluteURL)
+				mutx.Unlock()
+				return
+			}
 			resp.Body.Close()
-		}
 
+			mutx.Lock()
+			if ul.Host == base.Host {
+				result.Internal++
+				log.Printf("Info: INTERNAL link: %s\n", absoluteURL)
+			} else {
+				result.External++
+				log.Printf("Info: EXTERNAL link: %s\n", absoluteURL)
+			}
+			mutx.Unlock()
+		}(i, link)
 	}
 
-	result.Internal = internalCount
-	result.External = externalCount
-	result.Inaccessible = inaccessibleCount
-	result.InaccessibleURLs = inaccessibleURLs
+	wGrp.Wait()
 
-	log.Printf("Analysis complete. Total: %d, Internal: %d, External: %d, Inaccessible: %d.\n",
+	log.Printf("Info: Analysis complete. Total: %d, Internal: %d, External: %d, Inaccessible: %d.\n",
 		result.Total, result.Internal, result.External, result.Inaccessible)
 
 	return result
-
 }
 
 // Using simple string search approch for find login form.
 func CheckForLoginForm(content string) bool {
-	log.Printf("Starting login form detection")
+	log.Printf("Info: Starting login form detection")
 
 	// Simple string search - most reliable for basic detection
 	hasForm := strings.Contains(strings.ToLower(content), "<form")
 	hasPassword := strings.Contains(strings.ToLower(content), `type="password"`)
 
 	result := hasForm && hasPassword
-	log.Printf("Login form detection - Form: %t, Password: %t, Result: %t",
+	log.Printf("Info: Login form detection - Form: %t, Password: %t, Result: %t",
 		hasForm, hasPassword, result)
 
 	return result
