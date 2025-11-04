@@ -97,6 +97,20 @@ Follow these steps to set up and run the Web Analyzer project:
  - Links: Counts internal, external, and inaccessible links
  - Login Form Detection: Checks for forms with password/username fields
 
+ ## Challenges
+Use Concurrency for Link Analysis
+  - Problem : 
+    Link checking (AnalyzeLinks()) is done sequentially — every http.Get(link) waits for the previous one to finish.
+
+  - Solution : 
+    Use Go routines + a bounded worker pool to check links concurrently but safely (avoid overwhelming network or CPU).
+
+  - Improvements : 
+    - Parallelizes link checking → faster response times.
+    - Rate-limited concurrency via sem channel prevents overload.
+    - Thread-safe updates using sync.Mutex.
+    - Non-blocking — the main routine waits for all workers using WaitGroup.
+
 ## Future Enhancements
 - Archtectural Enhancements
   
