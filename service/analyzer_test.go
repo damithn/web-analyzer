@@ -1,10 +1,7 @@
 package service
 
 import (
-	"strings"
 	"testing"
-
-	"golang.org/x/net/html"
 )
 
 const sampleHTML = `
@@ -26,14 +23,6 @@ const sampleHTML = `
 </body>
 </html>
 `
-
-func parseHTML(t *testing.T, htmlStr string) *html.Node {
-	doc, err := html.Parse(strings.NewReader(htmlStr))
-	if err != nil {
-		t.Fatalf("Failed to parse HTML: %v", err)
-	}
-	return doc
-}
 
 func TestDetectHTMLVersion(t *testing.T) {
 	version := DetectHTMLVersion("www.example.com", sampleHTML)
@@ -64,8 +53,7 @@ func TestAnalyzeLinks(t *testing.T) {
 }
 
 func TestCheckForLoginForm(t *testing.T) {
-	doc := parseHTML(t, sampleHTML)
-	found := CheckForLoginForm(doc)
+	found := CheckForLoginForm(sampleHTML)
 	if !found {
 		t.Errorf("Expected login form to be detected")
 	}

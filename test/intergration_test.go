@@ -54,7 +54,7 @@ func TestAnalyzeWebPageIntegration(t *testing.T) {
 	if result.Links.Internal != 1 || result.Links.External != 1 {
 		t.Errorf("Unexpected link counts: Internal=%d, External=%d", result.Links.Internal, result.Links.External)
 	}
-	if !result.ContainLoginform {
+	if !result.ContainsLoginForm {
 		t.Errorf("Expected login form to be detected")
 	}
 }
