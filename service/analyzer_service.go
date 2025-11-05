@@ -10,9 +10,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"web-analyzer/cache"
 
 	"golang.org/x/net/html"
 )
+
+var linkCache = cache.NewLinkCache()
 
 // Analyze result - hold all the extected information
 type AnalyzeResult struct {
@@ -225,29 +228,42 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 
 			absoluteURL := ul.String()
 
-			resp, err := client.Head(absoluteURL)
-			if err != nil || resp.StatusCode >= 400 {
-				if resp != nil {
-					resp.Body.Close()
-				}
-				log.Printf("Error: Inaccessible URL (%s), Status: %v\n", absoluteURL, err)
+			if cachedAccessible, found := linkCache.Get(absoluteURL); found {
 				mutx.Lock()
-				result.Inaccessible++
-				result.InaccessibleURLs = append(result.InaccessibleURLs, absoluteURL)
+				if cachedAccessible {
+					if ul.Host == base.Host {
+						result.Internal++
+					} else {
+						result.External++
+					}
+				} else {
+					result.Inaccessible++
+					result.InaccessibleURLs = append(result.InaccessibleURLs, absoluteURL)
+				}
 				mutx.Unlock()
+				log.Printf("Info: Cache hit for %s (accessible: %t)\n", absoluteURL, cachedAccessible)
 				return
 			}
-			resp.Body.Close()
+
+			resp, err := client.Head(absoluteURL)
+			accessible := (err != nil || resp.StatusCode >= 400)
+			if resp != nil {
+				resp.Body.Close()
+			}
+
+			linkCache.Set(absoluteURL, accessible)
 
 			mutx.Lock()
-			if ul.Host == base.Host {
+			if !accessible {
+				result.Inaccessible++
+				result.InaccessibleURLs = append(result.InaccessibleURLs, absoluteURL)
+			} else if ul.Host == base.Host {
 				result.Internal++
-				log.Printf("Info: INTERNAL link: %s\n", absoluteURL)
 			} else {
 				result.External++
-				log.Printf("Info: EXTERNAL link: %s\n", absoluteURL)
 			}
 			mutx.Unlock()
+
 		}(i, link)
 	}
 
