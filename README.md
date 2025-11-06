@@ -159,6 +159,7 @@ Use Concurrency for Link Analysis
 
   a. Richer UI/UX
    - Migrate static HTML → React / Vue / Svelte
- 
 
+![System Architecture](/web-analyzer/images/Web_Analyser_flow.jpg)
+ 
 Author : https://www.linkedin.com/in/damith-samarakoon-02aba754/
