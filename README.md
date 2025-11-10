@@ -97,6 +97,32 @@ Follow these steps to set up and run the Web Analyzer project:
  - Links: Counts internal, external, and inaccessible links
  - Login Form Detection: Checks for forms with password/username fields
 
+
+## Testing
+The Web Analyzer project includes a set of unit and intergration tests to validate the correctness,performance amd reliability of the system components.
+Testing ensures that, all major components(service,cache,and handler layers) behave as expected.
+
+  - How to run tests with coverage:
+    - `go test ./... -v -cover`
+
+  - This will: 
+    1. Run all test files recursively
+    2. Disply verbose output
+    3. Show code coverage summary
+
+  - If want to genarate html coverage report:
+    - `go test ./... -coverprofile=coverage.out`
+    - `go tool cover -html=coverage.out`
+
+  - When test run successfully, you should see output similar to :
+
+    - === RUN   TestAnalyzeLinks_InternalAndExternal
+    - --- PASS: TestAnalyzeLinks_InternalAndExternal (0.05s)
+
+    - PASS
+    - coverage: 87.3% of statements
+    - ok  	web-analyzer/service	0.092s
+
  ## Challenges
 Use Concurrency for Link Analysis
   - Problem : 
