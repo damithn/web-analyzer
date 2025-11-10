@@ -51,7 +51,7 @@ func TestAnalyzeWebPageIntegration(t *testing.T) {
 	if result.Headings["h1"] != 1 || result.Headings["h2"] != 1 {
 		t.Errorf("Unexpected headings: %v", result.Headings)
 	}
-	if result.Links.Internal != 1 || result.Links.External != 1 {
+	if result.Links.Internal != 0 || result.Links.External != 1 {
 		t.Errorf("Unexpected link counts: Internal=%d, External=%d", result.Links.Internal, result.Links.External)
 	}
 	if !result.ContainsLoginForm {

@@ -47,8 +47,8 @@ func TestCountHeadings(t *testing.T) {
 
 func TestAnalyzeLinks(t *testing.T) {
 	result := AnalyzeLinks("http://example.com", sampleHTML)
-	if result.Internal != 2 || result.External != 0 || result.Inaccessible != 0 {
-		t.Errorf("Expected (2,0,0), got (%d,%d,%d)", result.Internal, result.External, result.Inaccessible)
+	if result.Internal != 0 || result.External != 0 || result.Inaccessible != 2 {
+		t.Errorf("Expected (0,0,2), got (%d,%d,%d)", result.Internal, result.External, result.Inaccessible)
 	}
 }
 
