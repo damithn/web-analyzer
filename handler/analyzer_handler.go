@@ -52,7 +52,7 @@ func validateAndNormalizeURL(rawURL string) (string, error) {
 	return rawURL, nil
 }
 
-// handle / analyze POST request
+// Handle /analyze POST request
 func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeJSON(w, http.StatusMethodNotAllowed, AnalyzeResponse{Error: "method not allowed"})

@@ -17,7 +17,7 @@ import (
 
 var linkCache = cache.NewLinkCache()
 
-// Analyze result - hold all the extected information
+// Analyze result - hold all the expected information
 type AnalyzeResult struct {
 	HTMLVersion       string         `json:"htmlVersion"`
 	PageTitle         string         `json:"pageTitle"`
@@ -46,7 +46,7 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 	log.Printf("Info: Fetch content from %s with 10s timeout.\n", targetURL)
 	resp, err := client.Get(targetURL)
 	if err != nil {
-		log.Printf("Error: Failed to fetch URL %s\n. Netoerk error : %v\n", targetURL, err)
+		log.Printf("Error: Failed to fetch URL %s\n. Network error : %v\n", targetURL, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -64,20 +64,20 @@ func AnalyzeWebPage(targetURL string) (*AnalyzeResult, error) {
 	}
 
 	content := string(bodyBytes)
-	log.Printf("Info: Content body read sussessfully for %s. Total size :%v", targetURL, len(content))
+	log.Printf("Info: Content body read successfully for %s. Total size :%v", targetURL, len(content))
 
 	result := &AnalyzeResult{}
 
-	// Detect HTML Version
+	// detection HTML Version
 	result.HTMLVersion = DetectHTMLVersion(targetURL, content)
 
-	// Extract Paget Titlt
+	// extraction Paget Title
 	result.PageTitle = ExtractPageTitle(targetURL, content)
 
 	// Count Headings
 	result.Headings = CountHeadings(targetURL, content)
 
-	// Analysis Links
+	// Analyze Links
 	result.Links = AnalyzeLinks(targetURL, content)
 
 	// Check Login Form
@@ -275,7 +275,7 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 	return result
 }
 
-// Using simple string search approch for find login form.
+// Using simple string search approach for find login form.
 func CheckForLoginForm(content string) bool {
 	log.Printf("Info: Starting login form detection")
 
