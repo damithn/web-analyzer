@@ -174,6 +174,12 @@ Use Concurrency for Link Analysis
      - Strictly validate user URLs to prevent SSRF (Server Side Request Forgery).
      - Limit allowed domains or apply regex validation.
 
+- Middleware layer Enhancements
+     - Add Rate limit for the middleware. then we can prevent the abuse of the analyzer service.
+     - Add Request Validation for the middleware. move URL validation logic out of the handler.
+     - Add Recovery implementation for the middleware . then we can prevent server crashes.
+     - Add CORS to the middleware.
+
 - Testing, Quality & Maintainability
 
   a. Expand Test Coverage
