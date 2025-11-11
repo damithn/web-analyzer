@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"web-analyzer/handler"
+	"web-analyzer/middleware"
 )
 
 func main() {
@@ -20,8 +21,9 @@ func main() {
 	mux.HandleFunc("/analyze", handler.AnalyzeHandler)
 
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
+		Addr: ":8080",
+		//Handler: mux,
+		Handler: middleware.Logging(mux),
 	}
 
 	log.Println("Server started on http://localhost:8080")
