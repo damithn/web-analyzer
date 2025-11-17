@@ -196,7 +196,7 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 		log.Fatalf("Error: Parsing provided baseURL %q: %v\n", baseURL, err)
 	}
 
-	client := &http.Client{Timeout: 3 * time.Second}
+	client := &http.Client{Timeout: 10 * time.Second}
 
 	var mutx sync.Mutex
 	var wGrp sync.WaitGroup
@@ -246,7 +246,12 @@ func AnalyzeLinks(baseURL, content string) LinkAnalysis {
 			}
 
 			resp, err := client.Head(absoluteURL)
-			accessible := (err != nil || resp.StatusCode >= 400)
+			accessible := false
+			if err == nil {
+				if resp.StatusCode < 400 {
+					accessible = true
+				}
+			}
 			if resp != nil {
 				resp.Body.Close()
 			}
